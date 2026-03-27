@@ -1,0 +1,113 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(ADMIN)
+  createdAt    DateTime @default(now())
+
+  @@map("users")
+}
+
+// ─── PDF Notes ───────────────────────────────────────────────────────
+
+enum PdfTagCategory {
+  SUBJECT
+  PHASE
+  TOPIC
+  SYSTEM
+  OTHER
+}
+
+model PdfNote {
+  id          String       @id @default(uuid())
+  title       String
+  slug        String       @unique
+  description String?
+  fileName    String
+  filePath    String
+  fileSize    Int
+  searchNames String[]
+  tags        PdfNoteTag[]
+  viewCount   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("pdf_notes")
+}
+
+model PdfTag {
+  id        String         @id @default(uuid())
+  name      String         @unique
+  slug      String         @unique
+  category  PdfTagCategory
+  notes     PdfNoteTag[]
+  createdAt DateTime       @default(now())
+
+  @@map("pdf_tags")
+}
+
+model PdfNoteTag {
+  noteId String
+  tagId  String
+  note   PdfNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag    PdfTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@map("pdf_note_tags")
+}
+
+// ─── Blog ────────────────────────────────────────────────────────────
+
+model BlogPost {
+  id          String        @id @default(uuid())
+  title       String
+  slug        String        @unique
+  content     String
+  excerpt     String?
+  coverImage  String?
+  published   Boolean       @default(false)
+  tags        BlogPostTag[]
+  viewCount   Int           @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("blog_posts")
+}
+
+model BlogTag {
+  id        String        @id @default(uuid())
+  name      String        @unique
+  slug      String        @unique
+  posts     BlogPostTag[]
+  createdAt DateTime      @default(now())
+
+  @@map("blog_tags")
+}
+
+model BlogPostTag {
+  postId String
+  tagId  String
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("blog_post_tags")
+}
