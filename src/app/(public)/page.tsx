@@ -6,6 +6,10 @@ import { PdfCard } from "@/components/pdf/PdfCard";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { AnimatedCounterSection } from "@/components/shared/AnimatedCounterSection";
 
+// Prisma queries aren't tracked by Next's cache, so without this the page is
+// prerendered once at build time and never reflects new content.
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
     const [latestNotes, latestBlogs, noteCount, blogCount, subjectCount] =
         await Promise.all([

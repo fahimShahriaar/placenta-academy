@@ -2,6 +2,9 @@ import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/constants";
 
+// Otherwise generated once at build time and never updated
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const [notes, posts] = await Promise.all([
         prisma.pdfNote.findMany({ select: { slug: true, updatedAt: true } }),
