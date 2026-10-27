@@ -2,8 +2,6 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
@@ -41,12 +39,14 @@ interface BlogEditorProps {
 
 export function BlogEditor({ content, onChange }: BlogEditorProps) {
     const editor = useEditor({
+        // Required under SSR — otherwise Tiptap throws in dev and risks hydration mismatches
+        immediatelyRender: false,
         extensions: [
+            // StarterKit v3 already bundles Link and Underline
             StarterKit.configure({
                 heading: { levels: [1, 2, 3, 4] },
+                link: { openOnClick: false },
             }),
-            Underline,
-            Link.configure({ openOnClick: false }),
             Image,
             TextAlign.configure({ types: ["heading", "paragraph"] }),
             Highlight,
