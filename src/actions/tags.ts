@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { PdfTagCategory } from "@/generated/prisma";
+import { PdfTagCategory } from "@/generated/prisma/client";
 import { slugify } from "@/lib/slug";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";

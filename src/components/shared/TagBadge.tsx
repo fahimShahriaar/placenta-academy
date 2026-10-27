@@ -1,4 +1,4 @@
-import { PdfTagCategory } from "@/generated/prisma";
+import { PdfTagCategory } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 

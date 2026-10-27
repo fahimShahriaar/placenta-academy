@@ -1,4 +1,4 @@
-import { PdfTagCategory } from "@/generated/prisma";
+import { PdfTagCategory } from "@/generated/prisma/enums";
 
 export interface PdfNoteWithTags {
     id: string;

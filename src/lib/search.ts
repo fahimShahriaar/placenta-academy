@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { Prisma } from "@/generated/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { ITEMS_PER_PAGE } from "./constants";
 
 interface SearchNotesParams {
