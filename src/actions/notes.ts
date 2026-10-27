@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/lib/auth";
 import { savePdf, deleteUploadedFile } from "@/lib/upload";
 import { generateUniqueSlug } from "@/lib/slug";
 import { revalidatePath } from "next/cache";
@@ -14,6 +15,8 @@ const noteSchema = z.object({
 });
 
 export async function createNote(formData: FormData) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const file = formData.get("file") as File | null;
     if (!file || file.size === 0) {
         return { error: "PDF file is required." };
@@ -71,6 +74,8 @@ export async function createNote(formData: FormData) {
 }
 
 export async function updateNote(id: string, formData: FormData) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const file = formData.get("file") as File | null;
 
     const parsed = noteSchema.safeParse({
@@ -139,6 +144,8 @@ export async function updateNote(id: string, formData: FormData) {
 }
 
 export async function deleteNote(id: string) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const note = await prisma.pdfNote.findUnique({ where: { id } });
     if (note) {
         await deleteUploadedFile(note.filePath);

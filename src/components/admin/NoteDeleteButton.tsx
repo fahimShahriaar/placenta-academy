@@ -11,6 +11,8 @@ export function NoteDeleteButton({ id, title }: { id: string; title: string }) {
         const result = await deleteNote(id);
         if (result.success) {
             toast.success("Note deleted.");
+        } else {
+            toast.error(result.error);
         }
     }
 

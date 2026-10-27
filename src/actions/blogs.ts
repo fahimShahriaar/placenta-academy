@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/lib/auth";
 import { saveImage, deleteUploadedFile } from "@/lib/upload";
 import { generateUniqueSlug } from "@/lib/slug";
 import { revalidatePath } from "next/cache";
@@ -53,6 +54,8 @@ function stripHtml(html: string): string {
 }
 
 export async function createBlog(formData: FormData) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const parsed = blogSchema.safeParse({
         title: formData.get("title"),
         content: formData.get("content"),
@@ -108,6 +111,8 @@ export async function createBlog(formData: FormData) {
 }
 
 export async function updateBlog(id: string, formData: FormData) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const parsed = blogSchema.safeParse({
         title: formData.get("title"),
         content: formData.get("content"),
@@ -172,6 +177,8 @@ export async function updateBlog(id: string, formData: FormData) {
 }
 
 export async function deleteBlog(id: string) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const blog = await prisma.blogPost.findUnique({ where: { id } });
     if (blog?.coverImage) {
         await deleteUploadedFile(blog.coverImage);

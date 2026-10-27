@@ -11,6 +11,8 @@ export function BlogDeleteButton({ id, title }: { id: string; title: string }) {
         const result = await deleteBlog(id);
         if (result.success) {
             toast.success("Blog post deleted.");
+        } else {
+            toast.error(result.error);
         }
     }
 

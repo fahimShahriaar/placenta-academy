@@ -56,13 +56,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return session;
         },
         async authorized({ auth, request }) {
-            const isAdmin = request.nextUrl.pathname.startsWith("/admin");
+            const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
             const isLoginPage = request.nextUrl.pathname === "/admin/login";
 
-            if (isAdmin && !isLoginPage) {
-                return !!auth?.user;
+            if (isAdminRoute && !isLoginPage) {
+                return (auth?.user as any)?.role === "ADMIN";
             }
             return true;
         },
     },
 });
+
+// Server Actions are reachable via direct POST requests, so every mutation
+// must call this itself — the proxy and layout checks don't cover them.
+export async function isAdmin() {
+    const session = await auth();
+    return (session?.user as any)?.role === "ADMIN";
+}

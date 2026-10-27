@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/lib/auth";
 import { PdfTagCategory } from "@/generated/prisma/client";
 import { slugify } from "@/lib/slug";
 import { revalidatePath } from "next/cache";
@@ -14,6 +15,8 @@ const createPdfTagSchema = z.object({
 });
 
 export async function createPdfTag(formData: FormData) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const parsed = createPdfTagSchema.safeParse({
         name: formData.get("name"),
         category: formData.get("category"),
@@ -42,6 +45,8 @@ export async function createPdfTag(formData: FormData) {
 }
 
 export async function updatePdfTag(id: string, name: string) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const slug = slugify(name);
     try {
         await prisma.pdfTag.update({
@@ -56,6 +61,8 @@ export async function updatePdfTag(id: string, name: string) {
 }
 
 export async function deletePdfTag(id: string) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     await prisma.pdfTag.delete({ where: { id } });
     revalidatePath("/admin/tags/pdf-tags");
     return { success: true };
@@ -68,6 +75,8 @@ const createBlogTagSchema = z.object({
 });
 
 export async function createBlogTag(formData: FormData) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const parsed = createBlogTagSchema.safeParse({
         name: formData.get("name"),
     });
@@ -91,6 +100,8 @@ export async function createBlogTag(formData: FormData) {
 }
 
 export async function updateBlogTag(id: string, name: string) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     const slug = slugify(name);
     try {
         await prisma.blogTag.update({
@@ -105,6 +116,8 @@ export async function updateBlogTag(id: string, name: string) {
 }
 
 export async function deleteBlogTag(id: string) {
+    if (!(await isAdmin())) return { error: "Unauthorized." };
+
     await prisma.blogTag.delete({ where: { id } });
     revalidatePath("/admin/tags/blog-tags");
     return { success: true };
