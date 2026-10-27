@@ -38,6 +38,9 @@ export default async function BlogListPage({ searchParams }: PageProps) {
         }),
     ]);
 
+    const paginationParams: Record<string, string | string[]> = { tag: tags };
+    if (query) paginationParams.q = query;
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="mb-8">
@@ -70,6 +73,7 @@ export default async function BlogListPage({ searchParams }: PageProps) {
                                 currentPage={result.currentPage}
                                 totalPages={result.totalPages}
                                 basePath="/blog"
+                                searchParams={paginationParams}
                             />
                         </div>
                     )}

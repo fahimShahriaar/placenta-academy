@@ -52,11 +52,8 @@ export default async function NotesPage({
     });
 
     // Build search params for pagination
-    const paginationParams: Record<string, string> = {};
+    const paginationParams: Record<string, string | string[]> = { tag: tagSlugs };
     if (query) paginationParams.q = query;
-    tagSlugs.forEach((t, i) => {
-        paginationParams[`tag${i > 0 ? i : ""}`] = t;
-    });
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

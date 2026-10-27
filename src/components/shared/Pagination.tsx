@@ -7,7 +7,7 @@ interface PaginationProps {
     currentPage: number;
     totalPages: number;
     basePath: string;
-    searchParams?: Record<string, string>;
+    searchParams?: Record<string, string | string[]>;
 }
 
 export function Pagination({
@@ -19,7 +19,12 @@ export function Pagination({
     if (totalPages <= 1) return null;
 
     function buildHref(page: number) {
-        const params = new URLSearchParams(searchParams);
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(searchParams)) {
+            for (const v of Array.isArray(value) ? value : [value]) {
+                params.append(key, v);
+            }
+        }
         params.set("page", page.toString());
         return `${basePath}?${params.toString()}`;
     }
