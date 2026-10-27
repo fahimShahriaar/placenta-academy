@@ -87,7 +87,7 @@ export async function createBlog(formData: FormData) {
         parsed.data.excerpt?.trim() || stripHtml(content).substring(0, 160);
 
     const tagIds = parsed.data.tagIds
-        ? parsed.data.tagIds.split(",").filter(Boolean)
+        ? parsed.data.tagIds.split(",").filter(Boolean).map(Number)
         : [];
 
     await prisma.blogPost.create({
@@ -110,7 +110,7 @@ export async function createBlog(formData: FormData) {
     return { success: true };
 }
 
-export async function updateBlog(id: string, formData: FormData) {
+export async function updateBlog(id: number, formData: FormData) {
     if (!(await isAdmin())) return { error: "Unauthorized." };
 
     const parsed = blogSchema.safeParse({
@@ -152,7 +152,7 @@ export async function updateBlog(id: string, formData: FormData) {
     await prisma.blogPostTag.deleteMany({ where: { postId: id } });
 
     const tagIds = parsed.data.tagIds
-        ? parsed.data.tagIds.split(",").filter(Boolean)
+        ? parsed.data.tagIds.split(",").filter(Boolean).map(Number)
         : [];
 
     await prisma.blogPost.update({
@@ -176,7 +176,7 @@ export async function updateBlog(id: string, formData: FormData) {
     return { success: true };
 }
 
-export async function deleteBlog(id: string) {
+export async function deleteBlog(id: number) {
     if (!(await isAdmin())) return { error: "Unauthorized." };
 
     const blog = await prisma.blogPost.findUnique({ where: { id } });

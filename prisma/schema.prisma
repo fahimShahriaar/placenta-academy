@@ -15,7 +15,7 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id           Int      @id @default(autoincrement())
   email        String   @unique
   passwordHash String
   name         String
@@ -36,7 +36,7 @@ enum PdfTagCategory {
 }
 
 model PdfNote {
-  id          String       @id @default(uuid())
+  id          Int          @id @default(autoincrement())
   title       String
   slug        String       @unique
   description String?
@@ -53,7 +53,7 @@ model PdfNote {
 }
 
 model PdfTag {
-  id        String         @id @default(uuid())
+  id        Int            @id @default(autoincrement())
   name      String         @unique
   slug      String         @unique
   category  PdfTagCategory
@@ -64,8 +64,8 @@ model PdfTag {
 }
 
 model PdfNoteTag {
-  noteId String
-  tagId  String
+  noteId Int
+  tagId  Int
   note   PdfNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
   tag    PdfTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
@@ -76,7 +76,7 @@ model PdfNoteTag {
 // ─── Blog ────────────────────────────────────────────────────────────
 
 model BlogPost {
-  id          String        @id @default(uuid())
+  id          Int           @id @default(autoincrement())
   title       String
   slug        String        @unique
   content     String
@@ -93,7 +93,7 @@ model BlogPost {
 }
 
 model BlogTag {
-  id        String        @id @default(uuid())
+  id        Int           @id @default(autoincrement())
   name      String        @unique
   slug      String        @unique
   posts     BlogPostTag[]
@@ -103,8 +103,8 @@ model BlogTag {
 }
 
 model BlogPostTag {
-  postId String
-  tagId  String
+  postId Int
+  tagId  Int
   post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 

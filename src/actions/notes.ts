@@ -50,7 +50,7 @@ export async function createNote(formData: FormData) {
         : [];
 
     const tagIds = parsed.data.tagIds
-        ? parsed.data.tagIds.split(",").filter(Boolean)
+        ? parsed.data.tagIds.split(",").filter(Boolean).map(Number)
         : [];
 
     await prisma.pdfNote.create({
@@ -73,7 +73,7 @@ export async function createNote(formData: FormData) {
     return { success: true };
 }
 
-export async function updateNote(id: string, formData: FormData) {
+export async function updateNote(id: number, formData: FormData) {
     if (!(await isAdmin())) return { error: "Unauthorized." };
 
     const file = formData.get("file") as File | null;
@@ -118,7 +118,7 @@ export async function updateNote(id: string, formData: FormData) {
         : [];
 
     const tagIds = parsed.data.tagIds
-        ? parsed.data.tagIds.split(",").filter(Boolean)
+        ? parsed.data.tagIds.split(",").filter(Boolean).map(Number)
         : [];
 
     // Delete existing tags and re-create
@@ -143,7 +143,7 @@ export async function updateNote(id: string, formData: FormData) {
     return { success: true };
 }
 
-export async function deleteNote(id: string) {
+export async function deleteNote(id: number) {
     if (!(await isAdmin())) return { error: "Unauthorized." };
 
     const note = await prisma.pdfNote.findUnique({ where: { id } });

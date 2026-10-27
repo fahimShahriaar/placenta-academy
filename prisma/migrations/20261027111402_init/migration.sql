@@ -6,7 +6,7 @@ CREATE TYPE "PdfTagCategory" AS ENUM ('SUBJECT', 'PHASE', 'TOPIC', 'SYSTEM', 'OT
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE "users" (
 
 -- CreateTable
 CREATE TABLE "pdf_notes" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "title" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "description" TEXT,
@@ -35,7 +35,7 @@ CREATE TABLE "pdf_notes" (
 
 -- CreateTable
 CREATE TABLE "pdf_tags" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "category" "PdfTagCategory" NOT NULL,
@@ -46,15 +46,15 @@ CREATE TABLE "pdf_tags" (
 
 -- CreateTable
 CREATE TABLE "pdf_note_tags" (
-    "noteId" TEXT NOT NULL,
-    "tagId" TEXT NOT NULL,
+    "noteId" INTEGER NOT NULL,
+    "tagId" INTEGER NOT NULL,
 
     CONSTRAINT "pdf_note_tags_pkey" PRIMARY KEY ("noteId","tagId")
 );
 
 -- CreateTable
 CREATE TABLE "blog_posts" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "title" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE "blog_posts" (
 
 -- CreateTable
 CREATE TABLE "blog_tags" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -81,8 +81,8 @@ CREATE TABLE "blog_tags" (
 
 -- CreateTable
 CREATE TABLE "blog_post_tags" (
-    "postId" TEXT NOT NULL,
-    "tagId" TEXT NOT NULL,
+    "postId" INTEGER NOT NULL,
+    "tagId" INTEGER NOT NULL,
 
     CONSTRAINT "blog_post_tags_pkey" PRIMARY KEY ("postId","tagId")
 );

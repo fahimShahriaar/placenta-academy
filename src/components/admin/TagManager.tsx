@@ -38,7 +38,7 @@ import {
 } from "@/actions/tags";
 
 interface Tag {
-    id: string;
+    id: number;
     name: string;
     slug: string;
     category?: string;
@@ -60,7 +60,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function TagManager({ tags, type }: TagManagerProps) {
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
     const [editValue, setEditValue] = useState("");
 
     async function handleCreate(formData: FormData) {
@@ -77,7 +77,7 @@ export function TagManager({ tags, type }: TagManagerProps) {
         }
     }
 
-    async function handleUpdate(id: string) {
+    async function handleUpdate(id: number) {
         if (!editValue.trim()) return;
         const result =
             type === "pdf"
@@ -92,7 +92,7 @@ export function TagManager({ tags, type }: TagManagerProps) {
         }
     }
 
-    async function handleDelete(id: string, name: string) {
+    async function handleDelete(id: number, name: string) {
         if (!confirm(`Delete tag "${name}"? This cannot be undone.`)) return;
         const result =
             type === "pdf" ? await deletePdfTag(id) : await deleteBlogTag(id);

@@ -13,7 +13,7 @@ export function slugify(text: string): string {
 export async function generateUniqueSlug(
     text: string,
     model: "pdfNote" | "blogPost",
-    excludeId?: string
+    excludeId?: number
 ): Promise<string> {
     const base = slugify(text);
     let slug = base;

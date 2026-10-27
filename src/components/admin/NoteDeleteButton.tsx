@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { deleteNote } from "@/actions/notes";
 import { toast } from "sonner";
 
-export function NoteDeleteButton({ id, title }: { id: string; title: string }) {
+export function NoteDeleteButton({ id, title }: { id: number; title: string }) {
     async function handleDelete() {
         if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
         const result = await deleteNote(id);

@@ -14,14 +14,14 @@ import { toast } from "sonner";
 import { createNote, updateNote } from "@/actions/notes";
 
 interface Tag {
-    id: string;
+    id: number;
     name: string;
     slug: string;
     category: string;
 }
 
 interface NoteData {
-    id: string;
+    id: number;
     title: string;
     description: string | null;
     fileName: string;
@@ -47,7 +47,7 @@ export function PdfUploadForm({ tags, note }: PdfUploadFormProps) {
     const router = useRouter();
     const fileRef = useRef<HTMLInputElement>(null);
     const [pending, setPending] = useState(false);
-    const [selectedTags, setSelectedTags] = useState<string[]>(
+    const [selectedTags, setSelectedTags] = useState<number[]>(
         note?.tags.map((t) => t.tag.id) || []
     );
     const [searchNames, setSearchNames] = useState<string[]>(
@@ -61,7 +61,7 @@ export function PdfUploadForm({ tags, note }: PdfUploadFormProps) {
         return acc;
     }, {} as Record<string, Tag[]>);
 
-    function toggleTag(tagId: string) {
+    function toggleTag(tagId: number) {
         setSelectedTags((prev) =>
             prev.includes(tagId)
                 ? prev.filter((id) => id !== tagId)

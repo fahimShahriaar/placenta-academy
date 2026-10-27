@@ -23,7 +23,7 @@ async function getPost(slug: string) {
     });
 }
 
-async function getRelatedPosts(postId: string, tagIds: string[], limit = 3) {
+async function getRelatedPosts(postId: number, tagIds: number[], limit = 3) {
     if (tagIds.length === 0) return [];
     return prisma.blogPost.findMany({
         where: {

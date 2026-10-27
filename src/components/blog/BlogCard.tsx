@@ -11,7 +11,7 @@ interface BlogCardProps {
     createdAt: Date;
     tags: {
         tag: {
-            id: string;
+            id: number;
             name: string;
             slug: string;
         };

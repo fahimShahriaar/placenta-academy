@@ -44,7 +44,7 @@ export async function createPdfTag(formData: FormData) {
     return { success: true };
 }
 
-export async function updatePdfTag(id: string, name: string) {
+export async function updatePdfTag(id: number, name: string) {
     if (!(await isAdmin())) return { error: "Unauthorized." };
 
     const slug = slugify(name);
@@ -60,7 +60,7 @@ export async function updatePdfTag(id: string, name: string) {
     return { success: true };
 }
 
-export async function deletePdfTag(id: string) {
+export async function deletePdfTag(id: number) {
     if (!(await isAdmin())) return { error: "Unauthorized." };
 
     await prisma.pdfTag.delete({ where: { id } });
@@ -99,7 +99,7 @@ export async function createBlogTag(formData: FormData) {
     return { success: true };
 }
 
-export async function updateBlogTag(id: string, name: string) {
+export async function updateBlogTag(id: number, name: string) {
     if (!(await isAdmin())) return { error: "Unauthorized." };
 
     const slug = slugify(name);
@@ -115,7 +115,7 @@ export async function updateBlogTag(id: string, name: string) {
     return { success: true };
 }
 
-export async function deleteBlogTag(id: string) {
+export async function deleteBlogTag(id: number) {
     if (!(await isAdmin())) return { error: "Unauthorized." };
 
     await prisma.blogTag.delete({ where: { id } });

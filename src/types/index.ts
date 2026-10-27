@@ -1,7 +1,7 @@
 import { PdfTagCategory } from "@/generated/prisma/enums";
 
 export interface PdfNoteWithTags {
-    id: string;
+    id: number;
     title: string;
     slug: string;
     description: string | null;
@@ -14,7 +14,7 @@ export interface PdfNoteWithTags {
     updatedAt: Date;
     tags: {
         tag: {
-            id: string;
+            id: number;
             name: string;
             slug: string;
             category: PdfTagCategory;
@@ -23,7 +23,7 @@ export interface PdfNoteWithTags {
 }
 
 export interface BlogPostWithTags {
-    id: string;
+    id: number;
     title: string;
     slug: string;
     content: string;
@@ -36,7 +36,7 @@ export interface BlogPostWithTags {
     updatedAt: Date;
     tags: {
         tag: {
-            id: string;
+            id: number;
             name: string;
             slug: string;
         };
@@ -44,7 +44,7 @@ export interface BlogPostWithTags {
 }
 
 export interface PdfTagWithCount {
-    id: string;
+    id: number;
     name: string;
     slug: string;
     category: PdfTagCategory;
@@ -52,7 +52,7 @@ export interface PdfTagWithCount {
 }
 
 export interface BlogTagWithCount {
-    id: string;
+    id: number;
     name: string;
     slug: string;
     _count: { posts: number };

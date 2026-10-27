@@ -7,7 +7,8 @@ export default async function EditBlogPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
+    const id = Number((await params).id);
+    if (!Number.isInteger(id)) notFound();
 
     const [blog, tags] = await Promise.all([
         prisma.blogPost.findUnique({

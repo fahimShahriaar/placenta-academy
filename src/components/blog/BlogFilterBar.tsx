@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
 interface BlogTag {
-    id: string;
+    id: number;
     name: string;
     slug: string;
     _count: { posts: number };

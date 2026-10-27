@@ -11,7 +11,7 @@ interface TagGroup {
     category: string;
     label: string;
     tags: {
-        id: string;
+        id: number;
         name: string;
         slug: string;
         _count: { notes: number };

@@ -14,13 +14,13 @@ import { toast } from "sonner";
 import { createBlog, updateBlog } from "@/actions/blogs";
 
 interface Tag {
-    id: string;
+    id: number;
     name: string;
     slug: string;
 }
 
 interface BlogData {
-    id: string;
+    id: number;
     title: string;
     content: string;
     excerpt: string | null;
@@ -40,12 +40,12 @@ export function BlogForm({ tags, blog }: BlogFormProps) {
     const [pending, setPending] = useState(false);
     const [content, setContent] = useState(blog?.content || "");
     const [published, setPublished] = useState(blog?.published || false);
-    const [selectedTags, setSelectedTags] = useState<string[]>(
+    const [selectedTags, setSelectedTags] = useState<number[]>(
         blog?.tags.map((t) => t.tag.id) || []
     );
     const [coverName, setCoverName] = useState("");
 
-    function toggleTag(tagId: string) {
+    function toggleTag(tagId: number) {
         setSelectedTags((prev) =>
             prev.includes(tagId)
                 ? prev.filter((id) => id !== tagId)

@@ -26,8 +26,8 @@ async function getNote(slug: string) {
 }
 
 async function getRelatedNotes(
-    noteId: string,
-    tagIds: string[],
+    noteId: number,
+    tagIds: number[],
     limit = 4
 ) {
     if (tagIds.length === 0) return [];
