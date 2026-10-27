@@ -1,13 +1,24 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
+import { ChevronDown, LoaderCircle, SlidersHorizontal, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Filter, X } from "lucide-react";
-import { useState } from "react";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { toggleTagParam, useQueryNavigation } from "@/components/shared/QueryNavigation";
+import { pluralize } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-interface TagGroup {
+export interface TagGroup {
     category: string;
     label: string;
     tags: {
@@ -18,116 +29,246 @@ interface TagGroup {
     }[];
 }
 
-interface PdfFilterSidebarProps {
-    tagGroups: TagGroup[];
-}
+const COLLAPSED_LIMIT = 8;
 
-const CATEGORY_LABELS: Record<string, string> = {
-    PHASE: "Phase",
-    SUBJECT: "Subject",
-    SYSTEM: "System",
-    TOPIC: "Topic",
-    OTHER: "Other",
-};
-
-function FilterContent({ tagGroups }: { tagGroups: TagGroup[] }) {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-
-    const activeTags = searchParams.getAll("tag");
-
-    function toggleTag(slug: string) {
-        const params = new URLSearchParams(searchParams.toString());
-        const tags = params.getAll("tag");
-        params.delete("tag");
-        params.delete("page");
-
-        if (tags.includes(slug)) {
-            tags
-                .filter((t) => t !== slug)
-                .forEach((t) => params.append("tag", t));
-        } else {
-            tags.forEach((t) => params.append("tag", t));
-            params.append("tag", slug);
-        }
-
-        router.push(`/notes?${params.toString()}`);
-    }
-
-    function clearAll() {
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete("tag");
-        params.delete("page");
-        router.push(`/notes?${params.toString()}`);
-    }
+function FilterGroup({ group, activeTags, idPrefix }: { group: TagGroup; activeTags: string[]; idPrefix: string }) {
+    const { update } = useQueryNavigation();
+    const selectedInGroup = group.tags.filter((t) => activeTags.includes(t.slug)).length;
+    const [expanded, setExpanded] = useState(false);
+    const needsToggle = group.tags.length > COLLAPSED_LIMIT;
+    // Selected tags stay visible even when the group is collapsed
+    const visible =
+        needsToggle && !expanded
+            ? group.tags.filter((t, i) => i < COLLAPSED_LIMIT || activeTags.includes(t.slug))
+            : group.tags;
+    const headingId = `${idPrefix}-${group.category}`;
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h3 className="font-semibold">Filters</h3>
-                {activeTags.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearAll} className="h-7 text-xs gap-1">
-                        <X className="h-3 w-3" />
-                        Clear all
-                    </Button>
+        <div role="group" aria-labelledby={headingId} className="border-t pt-4 first:border-t-0 first:pt-0">
+            <h3 id={headingId} className="flex items-center justify-between px-2 text-sm font-semibold text-foreground">
+                {group.label}
+                {selectedInGroup > 0 && (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                        {selectedInGroup} selected
+                    </span>
                 )}
-            </div>
-
-            {tagGroups.map((group) => {
-                if (group.tags.length === 0) return null;
-                return (
-                    <div key={group.category}>
-                        <h4 className="text-sm font-medium mb-2 text-muted-foreground">
-                            {group.label}
-                        </h4>
-                        <div className="space-y-2">
-                            {group.tags.map((tag) => (
-                                <label
-                                    key={tag.id}
-                                    className="flex items-center gap-2 cursor-pointer text-sm"
+            </h3>
+            <ul className="mt-2 space-y-0.5">
+                {visible.map((tag) => {
+                    const checked = activeTags.includes(tag.slug);
+                    const count = tag._count.notes;
+                    return (
+                        <li key={tag.id}>
+                            <label
+                                className={cn(
+                                    "flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-[0.9375rem] transition-colors duration-150 hover:bg-muted",
+                                    checked && "bg-secondary/70 hover:bg-secondary"
+                                )}
+                            >
+                                <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={() => update((p) => toggleTagParam(p, tag.slug))}
+                                />
+                                <span
+                                    className={cn(
+                                        "min-w-0 flex-1 break-words",
+                                        checked ? "font-medium text-foreground" : count === 0 ? "text-muted-foreground" : "text-foreground"
+                                    )}
                                 >
-                                    <Checkbox
-                                        checked={activeTags.includes(tag.slug)}
-                                        onCheckedChange={() => toggleTag(tag.slug)}
-                                    />
-                                    <span className="flex-1">{tag.name}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                        ({tag._count.notes})
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
+                                    {tag.name}
+                                </span>
+                                <span className="text-xs text-muted-foreground tabular-nums" aria-label={pluralize(count, "note")}>
+                                    {count}
+                                </span>
+                            </label>
+                        </li>
+                    );
+                })}
+            </ul>
+            {needsToggle && (
+                <button
+                    type="button"
+                    onClick={() => setExpanded((e) => !e)}
+                    aria-expanded={expanded}
+                    className="mt-1 inline-flex h-9 items-center gap-1 rounded-md px-2 text-sm font-medium text-primary-ink hover:bg-muted"
+                >
+                    {expanded ? "Show fewer" : `Show all ${group.tags.length}`}
+                    <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} aria-hidden="true" />
+                </button>
+            )}
         </div>
     );
 }
 
-export function PdfFilterSidebar({ tagGroups }: PdfFilterSidebarProps) {
-    const [open, setOpen] = useState(false);
+function FilterGroups({ tagGroups, activeTags, idPrefix }: { tagGroups: TagGroup[]; activeTags: string[]; idPrefix: string }) {
+    return (
+        <div className="space-y-4">
+            {tagGroups
+                .filter((g) => g.tags.length > 0)
+                .map((group) => (
+                    <FilterGroup key={group.category} group={group} activeTags={activeTags} idPrefix={idPrefix} />
+                ))}
+        </div>
+    );
+}
+
+const MATCH_HINT = "Notes matching any selected filter are shown.";
+
+/** Desktop: contained, sticky filter panel. */
+export function PdfFilterSidebar({ tagGroups, activeTags }: { tagGroups: TagGroup[]; activeTags: string[] }) {
+    const { update, isPending } = useQueryNavigation();
 
     return (
-        <>
-            {/* Mobile: Sheet trigger */}
-            <div className="lg:hidden mb-4">
-                <Sheet open={open} onOpenChange={setOpen}>
-                    <SheetTrigger render={<Button variant="outline" className="gap-2" />}>
-                        <Filter className="h-4 w-4" />
-                        Filters
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-80 overflow-y-auto">
-                        <FilterContent tagGroups={tagGroups} />
-                    </SheetContent>
-                </Sheet>
+        <div className="rounded-2xl border bg-card">
+            <div className="flex items-center justify-between gap-2 border-b px-5 py-4">
+                <h2 className="flex items-center gap-2 text-base font-semibold">
+                    Filters
+                    {isPending && <LoaderCircle className="size-4 animate-spin text-muted-foreground" aria-label="Updating results" />}
+                </h2>
+                {activeTags.length > 0 && (
+                    <Button variant="quiet" size="xs" onClick={() => update((p) => p.delete("tag"))}>
+                        Clear all
+                    </Button>
+                )}
             </div>
-
-            {/* Desktop: sidebar */}
-            <aside className="hidden lg:block w-64 shrink-0">
-                <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pr-4">
-                    <FilterContent tagGroups={tagGroups} />
+            <div className="max-h-[calc(100dvh-13rem)] overflow-y-auto overscroll-contain px-3 py-4">
+                <p className="mb-4 px-2 text-meta text-muted-foreground">{MATCH_HINT}</p>
+                <div className="px-0">
+                    <FilterGroups tagGroups={tagGroups} activeTags={activeTags} idPrefix="desktop" />
                 </div>
-            </aside>
-        </>
+            </div>
+        </div>
+    );
+}
+
+/** Mobile/tablet: filter trigger that opens an accessible drawer. */
+export function PdfFilterDrawer({
+    tagGroups,
+    activeTags,
+    total,
+}: {
+    tagGroups: TagGroup[];
+    activeTags: string[];
+    total: number;
+}) {
+    const [open, setOpen] = useState(false);
+    const { update, isPending } = useQueryNavigation();
+
+    return (
+        <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger render={<Button variant="outline" size="default" className="shrink-0" />}>
+                <SlidersHorizontal data-icon="inline-start" />
+                Filters
+                {activeTags.length > 0 && (
+                    <span className="ml-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+                        {activeTags.length}
+                    </span>
+                )}
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full max-w-md data-[side=right]:sm:max-w-md">
+                <SheetHeader>
+                    <SheetTitle>Filter notes</SheetTitle>
+                    <SheetDescription>{MATCH_HINT}</SheetDescription>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-4">
+                    <FilterGroups tagGroups={tagGroups} activeTags={activeTags} idPrefix="drawer" />
+                </div>
+                <SheetFooter className="flex-row gap-2">
+                    <Button
+                        variant="outline"
+                        size="lg"
+                        className="flex-1"
+                        disabled={activeTags.length === 0}
+                        onClick={() => update((p) => p.delete("tag"))}
+                    >
+                        Clear all
+                    </Button>
+                    <Button size="lg" className="flex-[1.4]" onClick={() => setOpen(false)}>
+                        {isPending ? (
+                            <>
+                                <LoaderCircle className="animate-spin" data-icon="inline-start" />
+                                Updating…
+                            </>
+                        ) : (
+                            `Show ${pluralize(total, "note")}`
+                        )}
+                    </Button>
+                </SheetFooter>
+            </SheetContent>
+        </Sheet>
+    );
+}
+
+/** Removable chips for the active search and filters. */
+export function ActiveFilters({
+    query,
+    activeTags,
+}: {
+    query: string;
+    activeTags: { slug: string; name: string; category: string; categoryLabel: string }[];
+}) {
+    const { update, hrefFor } = useQueryNavigation();
+    if (!query && activeTags.length === 0) return null;
+
+    const chip =
+        "inline-flex h-8 max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-secondary pr-1.5 pl-3 text-sm text-secondary-foreground transition-colors hover:border-primary/50";
+
+    return (
+        <ul className="flex flex-wrap items-center gap-2" aria-label="Active filters">
+            {query && (
+                <li className="max-w-full">
+                    <Link
+                        href={hrefFor((p) => p.delete("q"))}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            update((p) => p.delete("q"));
+                        }}
+                        className={chip}
+                        aria-label={`Remove search “${query}”`}
+                    >
+                        <span className="truncate">
+                            <span className="text-secondary-foreground/70">Search:</span>{" "}“{query}”
+                        </span>
+                        <X className="size-3.5 shrink-0" aria-hidden="true" />
+                    </Link>
+                </li>
+            )}
+            {activeTags.map((tag) => (
+                <li key={tag.slug} className="max-w-full">
+                    <Link
+                        href={hrefFor((p) => toggleTagParam(p, tag.slug))}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            update((p) => toggleTagParam(p, tag.slug));
+                        }}
+                        className={chip}
+                        aria-label={`Remove filter ${tag.categoryLabel}: ${tag.name}`}
+                    >
+                        <span className="truncate">
+                            <span className="text-secondary-foreground/70">{tag.categoryLabel}:</span> {tag.name}
+                        </span>
+                        <X className="size-3.5 shrink-0" aria-hidden="true" />
+                    </Link>
+                </li>
+            ))}
+            <li>
+                <Link
+                    href={hrefFor((p) => {
+                        p.delete("q");
+                        p.delete("tag");
+                    })}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        update((p) => {
+                            p.delete("q");
+                            p.delete("tag");
+                        });
+                    }}
+                    className="inline-flex h-8 items-center rounded-md px-2 text-sm font-medium text-primary-ink underline-offset-4 hover:underline"
+                >
+                    Clear all
+                </Link>
+            </li>
+        </ul>
     );
 }

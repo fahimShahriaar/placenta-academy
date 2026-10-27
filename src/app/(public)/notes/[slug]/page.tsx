@@ -1,20 +1,25 @@
+import { cache } from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { FileText, Eye, Calendar, ArrowLeft } from "lucide-react";
+import { ChevronRight, Download } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
-import { PdfViewer } from "@/components/pdf/PdfViewer";
+import { PdfReader } from "@/components/pdf/PdfReader";
 import { TagBadge } from "@/components/shared/TagBadge";
 import { ShareButtons } from "@/components/shared/ShareButtons";
-import { Button } from "@/components/ui/button";
 import { PdfCard } from "@/components/pdf/PdfCard";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { formatDate, formatFileSize } from "@/lib/format";
+import { summarizeNoteTags } from "@/lib/taxonomy";
+import { cn } from "@/lib/utils";
 
 interface PageProps {
     params: Promise<{ slug: string }>;
 }
 
-async function getNote(slug: string) {
+// Shared by generateMetadata and the page within one request
+const getNote = cache(async (slug: string) => {
     return prisma.pdfNote.findUnique({
         where: { slug },
         include: {
@@ -23,7 +28,7 @@ async function getNote(slug: string) {
             },
         },
     });
-}
+});
 
 async function getRelatedNotes(
     noteId: number,
@@ -80,87 +85,136 @@ export default async function NotePage({ params }: PageProps) {
     const relatedNotes = await getRelatedNotes(note.id, tagIds);
 
     const pageUrl = `${SITE_URL}/notes/${note.slug}`;
-
-    // Format file size
-    const fileSize =
-        note.fileSize > 1048576
-            ? `${(note.fileSize / 1048576).toFixed(1)} MB`
-            : `${(note.fileSize / 1024).toFixed(0)} KB`;
+    const { subject, phase, rest } = summarizeNoteTags(note.tags.map((t) => t.tag));
+    const views = note.viewCount + 1;
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-5xl">
-            {/* Back link */}
-            <Link href="/notes">
-                <Button variant="ghost" className="mb-4 -ml-2 gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Notes
-                </Button>
-            </Link>
+        <>
+            <div className="container-page pt-6 md:pt-10">
+                <nav aria-label="Breadcrumb">
+                    <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+                        <li>
+                            <Link href="/notes" className="rounded-sm underline-offset-4 hover:text-foreground hover:underline">
+                                Study notes
+                            </Link>
+                        </li>
+                        {subject && (
+                            <>
+                                <li aria-hidden="true">
+                                    <ChevronRight className="size-3.5" />
+                                </li>
+                                <li>
+                                    <Link
+                                        href={`/notes?tag=${subject.slug}`}
+                                        className="rounded-sm underline-offset-4 hover:text-foreground hover:underline"
+                                    >
+                                        {subject.name}
+                                    </Link>
+                                </li>
+                            </>
+                        )}
+                    </ol>
+                </nav>
 
-            {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold mb-3">{note.title}</h1>
-
-                {note.description && (
-                    <p className="text-muted-foreground text-lg mb-4">
-                        {note.description}
-                    </p>
-                )}
-
-                {/* Meta row */}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(note.createdAt).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                        })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Eye className="h-4 w-4" />
-                        {note.viewCount + 1} views
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <FileText className="h-4 w-4" />
-                        {fileSize}
-                    </span>
-                </div>
-
-                {/* Tags */}
-                {note.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                        {note.tags.map((nt) => (
-                            <TagBadge key={nt.tag.id} name={nt.tag.name} category={nt.tag.category} />
-                        ))}
+                <header className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-end lg:gap-12">
+                    <div className="min-w-0">
+                        {(subject || phase) && (
+                            <p className="eyebrow flex flex-wrap gap-x-1.5">
+                                {subject && <span>{subject.name}</span>}
+                                {subject && phase && <span aria-hidden="true" className="text-muted-foreground/60">·</span>}
+                                {phase && <span className="text-muted-foreground">{phase.name}</span>}
+                            </p>
+                        )}
+                        <h1 className="mt-2 font-display text-title font-semibold text-balance break-words">
+                            {note.title}
+                        </h1>
+                        {note.description && (
+                            <p className="mt-4 max-w-[65ch] text-lg leading-relaxed text-pretty text-muted-foreground">
+                                {note.description}
+                            </p>
+                        )}
+                        {rest.length > 0 && (
+                            <ul className="mt-5 flex flex-wrap gap-2" aria-label="Tags">
+                                {rest.map((tag) => (
+                                    <li key={tag.id} className="max-w-full">
+                                        <TagBadge
+                                            name={tag.name}
+                                            category={tag.category}
+                                            href={`/notes?tag=${tag.slug}`}
+                                            showCategory
+                                        />
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
-                )}
 
-                {/* Share */}
-                <ShareButtons url={pageUrl} title={note.title} />
+                    <aside aria-label="Note details" className="rounded-2xl border bg-card p-5">
+                        <dl className="grid grid-cols-3 gap-3 text-center">
+                            <div className="rounded-xl bg-sunken px-2 py-3">
+                                <dt className="text-xs text-muted-foreground">Added</dt>
+                                <dd className="mt-1 text-sm font-semibold">
+                                    <time dateTime={note.createdAt.toISOString()}>{formatDate(note.createdAt)}</time>
+                                </dd>
+                            </div>
+                            <div className="rounded-xl bg-sunken px-2 py-3">
+                                <dt className="text-xs text-muted-foreground">Views</dt>
+                                <dd className="mt-1 text-sm font-semibold tabular-nums">{views.toLocaleString("en-US")}</dd>
+                            </div>
+                            <div className="rounded-xl bg-sunken px-2 py-3">
+                                <dt className="text-xs text-muted-foreground">PDF size</dt>
+                                <dd className="mt-1 text-sm font-semibold">{formatFileSize(note.fileSize)}</dd>
+                            </div>
+                        </dl>
+                        <a
+                            href={`/api/uploads/${note.filePath}?download=1`}
+                            download={note.fileName}
+                            className={cn(buttonVariants({ size: "lg" }), "mt-4 w-full")}
+                        >
+                            <Download data-icon="inline-start" />
+                            Download PDF
+                        </a>
+                        <ShareButtons url={pageUrl} title={note.title} className="mt-3 justify-center" />
+                    </aside>
+                </header>
             </div>
 
-            {/* PDF Viewer */}
-            <PdfViewer filePath={note.filePath} fileName={note.fileName} />
+            <section aria-label="Document reader" className="container-page mt-8 md:mt-10">
+                <PdfReader filePath={note.filePath} fileName={note.fileName} />
+            </section>
 
-            {/* Related Notes */}
-            {relatedNotes.length > 0 && (
-                <section className="mt-12">
-                    <h2 className="text-2xl font-bold mb-6">Related Notes</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {relatedNotes.map((related) => (
-                            <PdfCard
-                                key={related.id}
-                                title={related.title}
-                                slug={related.slug}
-                                description={related.description}
-                                createdAt={related.createdAt}
-                                tags={related.tags}
-                            />
-                        ))}
+            {relatedNotes.length > 0 ? (
+                <section aria-labelledby="related-title" className="container-page pt-14 pb-16 md:pt-20 md:pb-24">
+                    <div className="flex items-end justify-between gap-4 border-b pb-4">
+                        <h2 id="related-title" className="font-display text-2xl font-semibold tracking-tight">
+                            Related notes
+                        </h2>
+                        <Link
+                            href={subject ? `/notes?tag=${subject.slug}` : "/notes"}
+                            className="text-sm font-medium text-primary-ink underline-offset-4 hover:underline"
+                        >
+                            {subject ? `More in ${subject.name}` : "All notes"}
+                        </Link>
                     </div>
+                    <ul className={cn("mt-6 grid gap-4", relatedNotes.length > 1 && "md:grid-cols-2")}>
+                        {relatedNotes.map((related) => (
+                            <li key={related.id}>
+                                <PdfCard
+                                    title={related.title}
+                                    slug={related.slug}
+                                    description={related.description}
+                                    createdAt={related.createdAt}
+                                    fileSize={related.fileSize}
+                                    tags={related.tags}
+                                    layout="row"
+                                />
+                            </li>
+                        ))}
+                    </ul>
                 </section>
+            ) : (
+                <div className="pb-16 md:pb-24" />
             )}
-        </div>
+        </>
     );
 }

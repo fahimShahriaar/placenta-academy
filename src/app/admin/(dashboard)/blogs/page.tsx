@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { ExternalLink, Newspaper, PenLine, Pencil } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button-variants";
 import {
     Table,
     TableBody,
@@ -10,86 +10,134 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BlogDeleteButton } from "@/components/admin/BlogDeleteButton";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { AdminPageHeader, AdminPanel } from "@/components/admin/AdminPageHeader";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { formatDate, pluralize } from "@/lib/format";
 
 export default async function AdminBlogsPage() {
     const blogs = await prisma.blogPost.findMany({
         include: { tags: { include: { tag: true } } },
         orderBy: { createdAt: "desc" },
     });
+    const published = blogs.filter((b) => b.published).length;
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">Blog Posts</h1>
-                <Link href="/admin/blogs/new">
-                    <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Post
-                    </Button>
-                </Link>
-            </div>
+        <div>
+            <AdminPageHeader
+                title="Articles"
+                description={`${published} published · ${pluralize(blogs.length - published, "draft")}`}
+                actions={
+                    <Link href="/admin/blogs/new" className={buttonVariants()}>
+                        <PenLine data-icon="inline-start" />
+                        Write article
+                    </Link>
+                }
+            />
 
-            <div className="border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Tags</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead className="text-right">Views</TableHead>
-                            <TableHead className="w-32">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {blogs.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                    No blog posts yet.
-                                </TableCell>
+            {blogs.length === 0 ? (
+                <EmptyState
+                    icon={Newspaper}
+                    title="No articles yet"
+                    description="Write an article, save it as a draft, and publish it when it's ready."
+                >
+                    <Link href="/admin/blogs/new" className={buttonVariants()}>
+                        <PenLine data-icon="inline-start" />
+                        Write article
+                    </Link>
+                </EmptyState>
+            ) : (
+                <AdminPanel>
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="hover:bg-transparent">
+                                <TableHead>Article</TableHead>
+                                <TableHead className="hidden sm:table-cell">Status</TableHead>
+                                <TableHead className="hidden lg:table-cell">Topics</TableHead>
+                                <TableHead className="hidden md:table-cell">Date</TableHead>
+                                <TableHead className="hidden text-right sm:table-cell">Views</TableHead>
+                                <TableHead className="text-right">
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
                             </TableRow>
-                        ) : (
-                            blogs.map((blog) => (
-                                <TableRow key={blog.id}>
-                                    <TableCell className="font-medium max-w-xs truncate">
-                                        {blog.title}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={blog.published ? "default" : "secondary"}>
-                                            {blog.published ? "Published" : "Draft"}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-wrap gap-1">
-                                            {blog.tags.slice(0, 3).map((bt) => (
-                                                <Badge key={bt.tag.id} variant="secondary" className="text-xs">
-                                                    {bt.tag.name}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">
-                                        {blog.createdAt.toLocaleDateString()}
-                                    </TableCell>
-                                    <TableCell className="text-right">{blog.viewCount}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Link href={`/admin/blogs/${blog.id}/edit`}>
-                                                <Button variant="ghost" size="sm">
-                                                    Edit
-                                                </Button>
+                        </TableHeader>
+                        <TableBody>
+                            {blogs.map((blog) => {
+                                const date = blog.publishedAt ?? blog.createdAt;
+                                const topics = blog.tags.map((t) => t.tag.name);
+                                return (
+                                    <TableRow key={blog.id}>
+                                        <TableCell className="w-full max-w-0">
+                                            <Link
+                                                href={`/admin/blogs/${blog.id}/edit`}
+                                                className="block truncate font-medium text-foreground underline-offset-4 hover:underline"
+                                            >
+                                                {blog.title}
                                             </Link>
-                                            <BlogDeleteButton id={blog.id} title={blog.title} />
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                                            {blog.excerpt && (
+                                                <p className="mt-0.5 truncate text-meta text-muted-foreground">{blog.excerpt}</p>
+                                            )}
+                                            <div className="mt-1.5 flex items-center gap-2 sm:hidden">
+                                                <StatusBadge published={blog.published} />
+                                                <span className="truncate text-meta text-muted-foreground">
+                                                    {formatDate(date)} · {pluralize(blog.viewCount, "view")}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="hidden sm:table-cell">
+                                            <StatusBadge published={blog.published} />
+                                        </TableCell>
+                                        <TableCell className="hidden lg:table-cell">
+                                            <span className="block max-w-[12rem] truncate text-sm text-muted-foreground">
+                                                {topics.length > 0 ? topics.join(", ") : "—"}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="hidden whitespace-nowrap text-muted-foreground md:table-cell">
+                                            {formatDate(date)}
+                                        </TableCell>
+                                        <TableCell className="hidden text-right tabular-nums sm:table-cell">
+                                            {blog.viewCount.toLocaleString("en-US")}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Link
+                                                    href={`/admin/blogs/${blog.id}/edit`}
+                                                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                                                    aria-label={`Edit “${blog.title}”`}
+                                                >
+                                                    <Pencil />
+                                                    <span className="hidden sm:inline">Edit</span>
+                                                </Link>
+                                                {blog.published && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger
+                                                            render={
+                                                                <a
+                                                                    href={`/blog/${blog.slug}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    aria-label={`View “${blog.title}” on the website (opens in a new tab)`}
+                                                                    className={buttonVariants({ variant: "quiet", size: "icon-sm" })}
+                                                                />
+                                                            }
+                                                        >
+                                                            <ExternalLink />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>View on website</TooltipContent>
+                                                    </Tooltip>
+                                                )}
+                                                <BlogDeleteButton id={blog.id} title={blog.title} />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </AdminPanel>
+            )}
         </div>
     );
 }

@@ -1,29 +1,26 @@
-import { FileText, BookOpen, Eye, Tags } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText, Newspaper, Eye, Tags } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StatsCardProps {
     title: string;
     value: number;
     icon: React.ElementType;
     description?: string;
+    className?: string;
 }
 
-export function StatsCard({ title, value, icon: Icon, description }: StatsCardProps) {
+export function StatsCard({ title, value, icon: Icon, description, className }: StatsCardProps) {
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {title}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{value.toLocaleString()}</div>
-                {description && (
-                    <p className="text-xs text-muted-foreground mt-1">{description}</p>
-                )}
-            </CardContent>
-        </Card>
+        <div className={cn("flex flex-col gap-3 p-5", className)}>
+            <dt className="flex items-center justify-between gap-2 text-sm font-medium text-muted-foreground">
+                {title}
+                <Icon className="size-4" aria-hidden="true" />
+            </dt>
+            <dd className="font-display text-[2rem] leading-none font-semibold tracking-tight tabular-nums">
+                {value.toLocaleString("en-US")}
+            </dd>
+            {description && <dd className="text-meta text-muted-foreground">{description}</dd>}
+        </div>
     );
 }
 
@@ -33,16 +30,29 @@ export function StatsCards({
     stats: {
         totalNotes: number;
         totalBlogs: number;
+        publishedBlogs: number;
         totalViews: number;
-        totalTags: number;
+        totalPdfTags: number;
+        totalBlogTags: number;
     };
 }) {
+    const drafts = stats.totalBlogs - stats.publishedBlogs;
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatsCard title="Total PDFs" value={stats.totalNotes} icon={FileText} />
-            <StatsCard title="Total Blogs" value={stats.totalBlogs} icon={BookOpen} />
-            <StatsCard title="Total Views" value={stats.totalViews} icon={Eye} />
-            <StatsCard title="Total Tags" value={stats.totalTags} icon={Tags} />
-        </div>
+        <dl className="grid grid-cols-2 overflow-hidden rounded-2xl border bg-card lg:grid-cols-4 [&>div]:border-border [&>div:nth-child(even)]:border-l [&>div:nth-child(n+3)]:border-t lg:[&>div:nth-child(n+2)]:border-l lg:[&>div:nth-child(n+3)]:border-t-0">
+            <StatsCard title="PDF notes" value={stats.totalNotes} icon={FileText} description="In the public library" />
+            <StatsCard
+                title="Articles"
+                value={stats.totalBlogs}
+                icon={Newspaper}
+                description={`${stats.publishedBlogs} published · ${drafts} ${drafts === 1 ? "draft" : "drafts"}`}
+            />
+            <StatsCard title="Total views" value={stats.totalViews} icon={Eye} description="Notes and articles combined" />
+            <StatsCard
+                title="Tags"
+                value={stats.totalPdfTags + stats.totalBlogTags}
+                icon={Tags}
+                description={`${stats.totalPdfTags} note · ${stats.totalBlogTags} article`}
+            />
+        </dl>
     );
 }

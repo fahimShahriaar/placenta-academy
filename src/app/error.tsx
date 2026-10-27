@@ -1,6 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Logo } from "@/components/brand/Logo";
+import { ErrorPanel } from "@/components/shared/ErrorPanel";
 
 export default function Error({
     error,
@@ -10,13 +12,17 @@ export default function Error({
     reset: () => void;
 }) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-            <h1 className="text-5xl font-bold text-destructive mb-4">Oops</h1>
-            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
-            <p className="text-muted-foreground mb-8 max-w-sm">
-                An unexpected error occurred. Please try again.
-            </p>
-            <Button onClick={() => reset()}>Try Again</Button>
-        </div>
+        <>
+            <header className="border-b bg-background">
+                <div className="container-page flex h-16 items-center">
+                    <Link href="/" aria-label="Placenta Academy home" className="-m-1 rounded-lg p-1">
+                        <Logo />
+                    </Link>
+                </div>
+            </header>
+            <main id="main-content" className="flex-1">
+                <ErrorPanel reset={reset} digest={error.digest} />
+            </main>
+        </>
     );
 }

@@ -1,10 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Check } from "lucide-react";
+import { SearchField } from "@/components/shared/SearchField";
+import { toggleTagParam, useQueryNavigation } from "@/components/shared/QueryNavigation";
+import { cn } from "@/lib/utils";
 
 interface BlogTag {
     id: number;
@@ -13,81 +13,79 @@ interface BlogTag {
     _count: { posts: number };
 }
 
-interface BlogFilterBarProps {
-    tags: BlogTag[];
+export function BlogSearch({ query, tags }: { query: string; tags: string[] }) {
+    return (
+        <SearchField
+            action="/blog"
+            defaultValue={query}
+            tags={tags}
+            size="xl"
+            label="Search articles"
+            placeholder="Search article titles"
+            hint="Matches words in article titles."
+        />
+    );
 }
 
-export function BlogFilterBar({ tags }: BlogFilterBarProps) {
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
+export function BlogFilterBar({ tags, activeTags }: { tags: BlogTag[]; activeTags: string[] }) {
+    const { update, hrefFor } = useQueryNavigation();
 
-    const currentQuery = searchParams.get("q") || "";
-    const currentTags = searchParams.getAll("tag");
+    if (tags.length === 0) return null;
 
-    const [query, setQuery] = useState(currentQuery);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const params = new URLSearchParams(searchParams.toString());
-            if (query) {
-                params.set("q", query);
-            } else {
-                params.delete("q");
-            }
-            params.delete("page");
-            router.push(`${pathname}?${params.toString()}`);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [query]);
-
-    function toggleTag(slug: string) {
-        const params = new URLSearchParams(searchParams.toString());
-        const existing = params.getAll("tag");
-        params.delete("tag");
-        params.delete("page");
-
-        if (existing.includes(slug)) {
-            existing
-                .filter((t) => t !== slug)
-                .forEach((t) => params.append("tag", t));
-        } else {
-            existing.forEach((t) => params.append("tag", t));
-            params.append("tag", slug);
-        }
-        router.push(`${pathname}?${params.toString()}`);
-    }
+    const chip =
+        "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-[background-color,border-color,color] duration-150 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none";
 
     return (
-        <div className="space-y-4">
-            <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search articles..."
-                    className="pl-10"
-                />
-            </div>
-
-            {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                    {tags.map((tag) => {
-                        const active = currentTags.includes(tag.slug);
-                        return (
-                            <button key={tag.id} onClick={() => toggleTag(tag.slug)}>
-                                <Badge
-                                    variant={active ? "default" : "outline"}
-                                    className="cursor-pointer text-sm"
-                                >
-                                    {tag.name}
-                                    <span className="ml-1 opacity-60">({tag._count.posts})</span>
-                                </Badge>
+        <div role="group" aria-labelledby="topic-filter-label" className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-5">
+            <p id="topic-filter-label" className="shrink-0 pt-2.5 text-sm font-semibold text-foreground">
+                Topics
+            </p>
+            <ul className="flex flex-wrap gap-2">
+                <li>
+                    <Link
+                        href={hrefFor((p) => p.delete("tag"))}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            update((p) => p.delete("tag"));
+                        }}
+                        aria-current={activeTags.length === 0 ? "true" : undefined}
+                        className={cn(
+                            chip,
+                            activeTags.length === 0
+                                ? "border-ink bg-ink text-ink-foreground dark:border-foreground dark:bg-foreground dark:text-background"
+                                : "border-border-strong bg-card text-foreground hover:border-foreground/40"
+                        )}
+                    >
+                        All topics
+                    </Link>
+                </li>
+                {tags.map((tag) => {
+                    const active = activeTags.includes(tag.slug);
+                    return (
+                        <li key={tag.id}>
+                            <button
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => update((p) => toggleTagParam(p, tag.slug))}
+                                className={cn(
+                                    chip,
+                                    active
+                                        ? "border-primary/40 bg-secondary text-secondary-foreground"
+                                        : "border-border-strong bg-card text-foreground hover:border-foreground/40",
+                                    tag._count.posts === 0 && !active && "text-muted-foreground"
+                                )}
+                            >
+                                {active && <Check className="-ml-1 size-4" aria-hidden="true" />}
+                                {tag.name}
+                                <span className="text-xs text-muted-foreground tabular-nums">
+                                    {tag._count.posts}
+                                    <span className="sr-only"> {tag._count.posts === 1 ? "article" : "articles"}</span>
+                                </span>
                             </button>
-                        );
-                    })}
-                </div>
-            )}
+                        </li>
+                    );
+                })}
+            </ul>
         </div>
     );
 }

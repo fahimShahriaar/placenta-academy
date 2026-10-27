@@ -1,6 +1,7 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useState } from "react";
+import { useEditor, useEditorState, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
@@ -11,6 +12,18 @@ import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import {
     Bold,
     Italic,
@@ -30,14 +43,263 @@ import {
     Highlighter,
     Minus,
     Table as TableIcon,
+    Undo2,
+    Redo2,
 } from "lucide-react";
 
 interface BlogEditorProps {
     content: string;
     onChange: (html: string) => void;
+    labelledBy?: string;
 }
 
-export function BlogEditor({ content, onChange }: BlogEditorProps) {
+function ToolbarButton({
+    onClick,
+    active,
+    disabled,
+    children,
+    label,
+}: {
+    onClick: () => void;
+    active?: boolean;
+    disabled?: boolean;
+    children: React.ReactNode;
+    label: string;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={onClick}
+                        disabled={disabled}
+                        aria-label={label}
+                        aria-pressed={active === undefined ? undefined : active}
+                        className={cn(
+                            "text-muted-foreground hover:text-foreground",
+                            active && "bg-secondary text-secondary-foreground hover:bg-mint-strong hover:text-secondary-foreground"
+                        )}
+                    />
+                }
+            >
+                {children}
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+function ToolbarGroup({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div role="group" aria-label={label} className="flex items-center gap-0.5 border-r pr-1.5 mr-1.5 last:mr-0 last:border-r-0 last:pr-0">
+            {children}
+        </div>
+    );
+}
+
+type UrlDialogState = { kind: "link" | "image"; url: string; alt: string } | null;
+
+function EditorToolbar({ editor, onRequestUrl }: { editor: Editor; onRequestUrl: (state: UrlDialogState) => void }) {
+    // Subscribe to selection/transaction changes so active states stay accurate
+    const state = useEditorState({
+        editor,
+        selector: ({ editor: e }) => ({
+            bold: e.isActive("bold"),
+            italic: e.isActive("italic"),
+            underline: e.isActive("underline"),
+            highlight: e.isActive("highlight"),
+            h1: e.isActive("heading", { level: 1 }),
+            h2: e.isActive("heading", { level: 2 }),
+            h3: e.isActive("heading", { level: 3 }),
+            bulletList: e.isActive("bulletList"),
+            orderedList: e.isActive("orderedList"),
+            blockquote: e.isActive("blockquote"),
+            codeBlock: e.isActive("codeBlock"),
+            alignLeft: e.isActive({ textAlign: "left" }),
+            alignCenter: e.isActive({ textAlign: "center" }),
+            alignRight: e.isActive({ textAlign: "right" }),
+            link: e.isActive("link"),
+            canUndo: e.can().undo(),
+            canRedo: e.can().redo(),
+        }),
+    });
+
+    const chain = () => editor.chain().focus();
+
+    return (
+        <div
+            role="toolbar"
+            aria-label="Formatting"
+            className="sticky top-14 z-10 flex flex-wrap items-center gap-y-1 border-b bg-card/95 px-2 py-1.5 backdrop-blur md:top-0"
+        >
+            <ToolbarGroup label="History">
+                <ToolbarButton label="Undo" onClick={() => chain().undo().run()} disabled={!state.canUndo}>
+                    <Undo2 />
+                </ToolbarButton>
+                <ToolbarButton label="Redo" onClick={() => chain().redo().run()} disabled={!state.canRedo}>
+                    <Redo2 />
+                </ToolbarButton>
+            </ToolbarGroup>
+            <ToolbarGroup label="Text style">
+                <ToolbarButton label="Bold" onClick={() => chain().toggleBold().run()} active={state.bold}>
+                    <Bold />
+                </ToolbarButton>
+                <ToolbarButton label="Italic" onClick={() => chain().toggleItalic().run()} active={state.italic}>
+                    <Italic />
+                </ToolbarButton>
+                <ToolbarButton label="Underline" onClick={() => chain().toggleUnderline().run()} active={state.underline}>
+                    <UnderlineIcon />
+                </ToolbarButton>
+                <ToolbarButton label="Highlight" onClick={() => chain().toggleHighlight().run()} active={state.highlight}>
+                    <Highlighter />
+                </ToolbarButton>
+            </ToolbarGroup>
+            <ToolbarGroup label="Headings">
+                <ToolbarButton label="Heading 1" onClick={() => chain().toggleHeading({ level: 1 }).run()} active={state.h1}>
+                    <Heading1 />
+                </ToolbarButton>
+                <ToolbarButton label="Heading 2" onClick={() => chain().toggleHeading({ level: 2 }).run()} active={state.h2}>
+                    <Heading2 />
+                </ToolbarButton>
+                <ToolbarButton label="Heading 3" onClick={() => chain().toggleHeading({ level: 3 }).run()} active={state.h3}>
+                    <Heading3 />
+                </ToolbarButton>
+            </ToolbarGroup>
+            <ToolbarGroup label="Blocks">
+                <ToolbarButton label="Bullet list" onClick={() => chain().toggleBulletList().run()} active={state.bulletList}>
+                    <List />
+                </ToolbarButton>
+                <ToolbarButton label="Numbered list" onClick={() => chain().toggleOrderedList().run()} active={state.orderedList}>
+                    <ListOrdered />
+                </ToolbarButton>
+                <ToolbarButton label="Quote" onClick={() => chain().toggleBlockquote().run()} active={state.blockquote}>
+                    <Quote />
+                </ToolbarButton>
+                <ToolbarButton label="Code block" onClick={() => chain().toggleCodeBlock().run()} active={state.codeBlock}>
+                    <Code />
+                </ToolbarButton>
+                <ToolbarButton label="Divider" onClick={() => chain().setHorizontalRule().run()}>
+                    <Minus />
+                </ToolbarButton>
+            </ToolbarGroup>
+            <ToolbarGroup label="Alignment">
+                <ToolbarButton label="Align left" onClick={() => chain().setTextAlign("left").run()} active={state.alignLeft}>
+                    <AlignLeft />
+                </ToolbarButton>
+                <ToolbarButton label="Align center" onClick={() => chain().setTextAlign("center").run()} active={state.alignCenter}>
+                    <AlignCenter />
+                </ToolbarButton>
+                <ToolbarButton label="Align right" onClick={() => chain().setTextAlign("right").run()} active={state.alignRight}>
+                    <AlignRight />
+                </ToolbarButton>
+            </ToolbarGroup>
+            <ToolbarGroup label="Insert">
+                <ToolbarButton
+                    label={state.link ? "Edit link" : "Add link"}
+                    active={state.link}
+                    onClick={() =>
+                        onRequestUrl({ kind: "link", url: (editor.getAttributes("link").href as string) ?? "", alt: "" })
+                    }
+                >
+                    <LinkIcon />
+                </ToolbarButton>
+                <ToolbarButton label="Insert image" onClick={() => onRequestUrl({ kind: "image", url: "", alt: "" })}>
+                    <ImageIcon />
+                </ToolbarButton>
+                <ToolbarButton
+                    label="Insert table"
+                    onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                >
+                    <TableIcon />
+                </ToolbarButton>
+            </ToolbarGroup>
+        </div>
+    );
+}
+
+function UrlDialog({
+    editor,
+    state,
+    onClose,
+}: {
+    editor: Editor;
+    state: NonNullable<UrlDialogState>;
+    onClose: () => void;
+}) {
+    const [url, setUrl] = useState(state.url);
+    const [alt, setAlt] = useState(state.alt);
+    const isLink = state.kind === "link";
+
+    function apply() {
+        const value = url.trim();
+        if (isLink) {
+            if (value) editor.chain().focus().extendMarkRange("link").setLink({ href: value }).run();
+            else editor.chain().focus().extendMarkRange("link").unsetLink().run();
+        } else if (value) {
+            editor.chain().focus().setImage({ src: value, alt: alt.trim() || undefined }).run();
+        }
+        onClose();
+    }
+
+    return (
+        <Dialog open onOpenChange={(open) => !open && onClose()}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{isLink ? (state.url ? "Edit link" : "Add link") : "Insert image"}</DialogTitle>
+                    <DialogDescription>
+                        {isLink
+                            ? "Links apply to the selected text. Leave the URL empty to remove a link."
+                            : "Paste the address of an image that's already online."}
+                    </DialogDescription>
+                </DialogHeader>
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        apply();
+                    }}
+                    className="space-y-4"
+                >
+                    <div className="space-y-2">
+                        <Label htmlFor="editor-url">{isLink ? "URL" : "Image URL"}</Label>
+                        <Input
+                            id="editor-url"
+                            type="url"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            placeholder="https://"
+                            autoFocus
+                            required={!isLink}
+                        />
+                    </div>
+                    {!isLink && (
+                        <div className="space-y-2">
+                            <Label htmlFor="editor-alt">Alt text</Label>
+                            <Input
+                                id="editor-alt"
+                                value={alt}
+                                onChange={(e) => setAlt(e.target.value)}
+                                placeholder="Describe the image for screen readers"
+                            />
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">{isLink ? (url.trim() || !state.url ? "Apply link" : "Remove link") : "Insert image"}</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+export function BlogEditor({ content, onChange, labelledBy }: BlogEditorProps) {
+    const [urlDialog, setUrlDialog] = useState<UrlDialogState>(null);
     const editor = useEditor({
         // Required under SSR — otherwise Tiptap throws in dev and risks hydration mismatches
         immediatelyRender: false,
@@ -54,7 +316,7 @@ export function BlogEditor({ content, onChange }: BlogEditorProps) {
             TableRow,
             TableCell,
             TableHeader,
-            Placeholder.configure({ placeholder: "Write your blog post here..." }),
+            Placeholder.configure({ placeholder: "Start writing your article…" }),
         ],
         content,
         onUpdate: ({ editor }) => {
@@ -63,196 +325,28 @@ export function BlogEditor({ content, onChange }: BlogEditorProps) {
         editorProps: {
             attributes: {
                 class:
-                    "prose prose-sm sm:prose dark:prose-invert max-w-none min-h-[300px] p-4 focus:outline-none",
+                    "prose prose-brand max-w-none min-h-[28rem] px-5 py-6 focus:outline-none sm:px-8 sm:py-8 md:prose-lg",
+                ...(labelledBy ? { "aria-labelledby": labelledBy } : { "aria-label": "Article content" }),
+                "aria-multiline": "true",
+                role: "textbox",
             },
         },
     });
 
-    if (!editor) return null;
-
-    function addLink() {
-        const url = prompt("Enter URL:");
-        if (url) {
-            editor?.chain().focus().setLink({ href: url }).run();
-        }
+    if (!editor) {
+        return (
+            <div className="overflow-clip rounded-2xl border bg-card" aria-busy="true">
+                <div className="h-[3.25rem] border-b bg-sunken/60" />
+                <div className="min-h-[28rem] animate-pulse bg-card" />
+            </div>
+        );
     }
-
-    function addImage() {
-        const url = prompt("Enter image URL:");
-        if (url) {
-            editor?.chain().focus().setImage({ src: url }).run();
-        }
-    }
-
-    const ToolbarButton = ({
-        onClick,
-        active,
-        children,
-        title,
-    }: {
-        onClick: () => void;
-        active?: boolean;
-        children: React.ReactNode;
-        title: string;
-    }) => (
-        <Button
-            type="button"
-            variant={active ? "default" : "ghost"}
-            size="icon"
-            className="h-8 w-8"
-            onClick={onClick}
-            title={title}
-        >
-            {children}
-        </Button>
-    );
 
     return (
-        <div className="border rounded-lg overflow-hidden">
-            <div className="flex flex-wrap gap-1 p-2 border-b bg-muted/50">
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    active={editor.isActive("bold")}
-                    title="Bold"
-                >
-                    <Bold className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                    active={editor.isActive("italic")}
-                    title="Italic"
-                >
-                    <Italic className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleUnderline().run()}
-                    active={editor.isActive("underline")}
-                    title="Underline"
-                >
-                    <UnderlineIcon className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleHighlight().run()}
-                    active={editor.isActive("highlight")}
-                    title="Highlight"
-                >
-                    <Highlighter className="h-4 w-4" />
-                </ToolbarButton>
-
-                <div className="w-px bg-border mx-1" />
-
-                <ToolbarButton
-                    onClick={() =>
-                        editor.chain().focus().toggleHeading({ level: 1 }).run()
-                    }
-                    active={editor.isActive("heading", { level: 1 })}
-                    title="Heading 1"
-                >
-                    <Heading1 className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() =>
-                        editor.chain().focus().toggleHeading({ level: 2 }).run()
-                    }
-                    active={editor.isActive("heading", { level: 2 })}
-                    title="Heading 2"
-                >
-                    <Heading2 className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() =>
-                        editor.chain().focus().toggleHeading({ level: 3 }).run()
-                    }
-                    active={editor.isActive("heading", { level: 3 })}
-                    title="Heading 3"
-                >
-                    <Heading3 className="h-4 w-4" />
-                </ToolbarButton>
-
-                <div className="w-px bg-border mx-1" />
-
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    active={editor.isActive("bulletList")}
-                    title="Bullet List"
-                >
-                    <List className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                    active={editor.isActive("orderedList")}
-                    title="Ordered List"
-                >
-                    <ListOrdered className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                    active={editor.isActive("blockquote")}
-                    title="Blockquote"
-                >
-                    <Quote className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                    active={editor.isActive("codeBlock")}
-                    title="Code Block"
-                >
-                    <Code className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                    title="Horizontal Rule"
-                >
-                    <Minus className="h-4 w-4" />
-                </ToolbarButton>
-
-                <div className="w-px bg-border mx-1" />
-
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().setTextAlign("left").run()}
-                    active={editor.isActive({ textAlign: "left" })}
-                    title="Align Left"
-                >
-                    <AlignLeft className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().setTextAlign("center").run()}
-                    active={editor.isActive({ textAlign: "center" })}
-                    title="Align Center"
-                >
-                    <AlignCenter className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() => editor.chain().focus().setTextAlign("right").run()}
-                    active={editor.isActive({ textAlign: "right" })}
-                    title="Align Right"
-                >
-                    <AlignRight className="h-4 w-4" />
-                </ToolbarButton>
-
-                <div className="w-px bg-border mx-1" />
-
-                <ToolbarButton onClick={addLink} title="Add Link">
-                    <LinkIcon className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton onClick={addImage} title="Add Image">
-                    <ImageIcon className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton
-                    onClick={() =>
-                        editor
-                            .chain()
-                            .focus()
-                            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                            .run()
-                    }
-                    title="Insert Table"
-                >
-                    <TableIcon className="h-4 w-4" />
-                </ToolbarButton>
-            </div>
-
+        <div className="overflow-clip rounded-2xl border bg-card transition-[border-color,box-shadow] focus-within:border-ring/60 focus-within:ring-3 focus-within:ring-ring/15">
+            <EditorToolbar editor={editor} onRequestUrl={setUrlDialog} />
             <EditorContent editor={editor} />
+            {urlDialog && <UrlDialog editor={editor} state={urlDialog} onClose={() => setUrlDialog(null)} />}
         </div>
     );
 }

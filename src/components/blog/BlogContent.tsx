@@ -1,13 +1,14 @@
-"use client";
-
 import sanitizeHtml from "sanitize-html";
+import { cn } from "@/lib/utils";
 
-interface BlogContentProps {
-    html: string;
+export interface TocItem {
+    id: string;
+    text: string;
+    level: 1 | 2;
 }
 
-export function BlogContent({ html }: BlogContentProps) {
-    const clean = sanitizeHtml(html, {
+function sanitize(html: string) {
+    return sanitizeHtml(html, {
         allowedTags: sanitizeHtml.defaults.allowedTags.concat([
             "img",
             "h1",
@@ -44,17 +45,69 @@ export function BlogContent({ html }: BlogContentProps) {
             },
         },
     });
+}
 
+function headingText(inner: string) {
+    return inner
+        .replace(/<[^>]*>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&[a-z#0-9]+;/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function headingSlug(text: string, index: number) {
+    const slug = text
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .slice(0, 60);
+    return slug || `section-${index + 1}`;
+}
+
+/**
+ * Sanitizes article HTML, then adds our own trusted markup: ids on h1–h3
+ * (for the table of contents) and scroll wrappers around tables.
+ */
+export function prepareArticle(html: string) {
+    const toc: TocItem[] = [];
+    const used = new Set<string>();
+
+    const withIds = sanitize(html).replace(
+        /<h([1-3])([^>]*)>([\s\S]*?)<\/h\1>/g,
+        (_match, level: string, attrs: string, inner: string) => {
+            const text = headingText(inner);
+            let id = headingSlug(text, toc.length);
+            while (used.has(id)) id = `${id}-${toc.length + 1}`;
+            used.add(id);
+            if (text) toc.push({ id, text, level: level === "3" ? 2 : 1 });
+            return `<h${level}${attrs} id="${id}">${inner}</h${level}>`;
+        }
+    );
+
+    const content = withIds
+        .replace(/<table/g, '<div class="table-scroll" role="region" aria-label="Table" tabindex="0"><table')
+        .replace(/<\/table>/g, "</table></div>");
+
+    return { content, toc };
+}
+
+interface BlogContentProps {
+    html: string;
+    className?: string;
+}
+
+/** Renders prepared (already sanitized) article HTML with the brand prose styles. */
+export function BlogContent({ html, className }: BlogContentProps) {
     return (
         <div
-            className="prose prose-lg dark:prose-invert max-w-none
-        prose-headings:scroll-mt-20
-        prose-a:text-primary prose-a:underline-offset-4
-        prose-img:rounded-lg prose-img:shadow-md
-        prose-pre:bg-muted prose-pre:border
-        prose-blockquote:border-l-primary
-        prose-table:border prose-th:bg-muted/50 prose-th:p-3 prose-td:p-3"
-            dangerouslySetInnerHTML={{ __html: clean }}
+            className={cn(
+                "prose prose-lg prose-brand max-w-none prose-headings:scroll-mt-28",
+                className
+            )}
+            dangerouslySetInnerHTML={{ __html: html }}
         />
     );
 }

@@ -18,9 +18,9 @@ export async function GET(request: NextRequest) {
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: "#0f172a",
+                    backgroundColor: "#132a35",
                     backgroundImage:
-                        "radial-gradient(circle at 25% 25%, #1e3a5f 0%, transparent 50%), radial-gradient(circle at 75% 75%, #0d9488 0%, transparent 50%)",
+                        "radial-gradient(circle at 85% 15%, #087f73 0%, transparent 45%), radial-gradient(circle at 10% 95%, rgba(239,129,111,0.35) 0%, transparent 35%)",
                 }}
             >
                 <div
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
                     <div
                         style={{
                             fontSize: "28px",
-                            color: "#94a3b8",
+                            color: "#a9bcbd",
                             marginBottom: "16px",
                             fontWeight: 600,
                         }}
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
                         style={{
                             fontSize: "56px",
                             fontWeight: 700,
-                            color: "#f8fafc",
+                            color: "#f7f8f4",
                             textAlign: "center",
                             lineHeight: 1.2,
                         }}

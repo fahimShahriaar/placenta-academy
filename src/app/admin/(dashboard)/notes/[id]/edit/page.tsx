@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { MAX_PDF_SIZE } from "@/lib/constants";
 import { PdfUploadForm } from "@/components/admin/PdfUploadForm";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { notFound } from "next/navigation";
 
 export default async function EditNotePage({
@@ -23,9 +25,13 @@ export default async function EditNotePage({
     if (!note) notFound();
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Edit PDF Note</h1>
-            <PdfUploadForm tags={tags} note={note} />
+        <div>
+            <AdminPageHeader
+                title="Edit note"
+                description={note.title}
+                back={{ href: "/admin/notes", label: "PDF notes" }}
+            />
+            <PdfUploadForm tags={tags} note={note} maxFileSize={MAX_PDF_SIZE} />
         </div>
     );
 }

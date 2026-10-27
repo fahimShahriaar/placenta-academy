@@ -1,42 +1,17 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { SearchField } from "@/components/shared/SearchField";
 
-export function PdfSearchBar() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const [query, setQuery] = useState(searchParams.get("q") || "");
-    const [, startTransition] = useTransition();
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            const params = new URLSearchParams(searchParams.toString());
-            if (query) {
-                params.set("q", query);
-            } else {
-                params.delete("q");
-            }
-            params.delete("page");
-            startTransition(() => {
-                router.push(`/notes?${params.toString()}`);
-            });
-        }, 300);
-
-        return () => clearTimeout(timeout);
-    }, [query]);
-
+export function PdfSearchBar({ query, tags }: { query: string; tags: string[] }) {
     return (
-        <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search notes by name, subject, topic..."
-                className="pl-9"
-            />
-        </div>
+        <SearchField
+            action="/notes"
+            defaultValue={query}
+            tags={tags}
+            size="xl"
+            label="Search study notes"
+            placeholder="Search study notes"
+            hint="Searches note titles, descriptions, and alternate names. Active filters are kept."
+        />
     );
 }

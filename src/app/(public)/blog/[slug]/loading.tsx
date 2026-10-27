@@ -2,20 +2,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
     return (
-        <article className="container mx-auto px-4 py-8 max-w-4xl">
-            <Skeleton className="h-8 w-32 mb-4" />
-            <Skeleton className="aspect-video w-full rounded-xl mb-8" />
-            <Skeleton className="h-12 w-3/4 mb-4" />
-            <div className="flex gap-4 mb-6">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-5 w-24" />
+        <div className="container-page pt-6 pb-16 md:pt-10" aria-busy="true" aria-label="Loading article">
+            <div className="mx-auto max-w-[64rem]">
+                <div className="mx-auto max-w-[44rem]">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="mt-8 h-4 w-24" />
+                    <Skeleton className="mt-3 h-11 w-full" />
+                    <Skeleton className="mt-2 h-11 w-2/3" />
+                    <Skeleton className="mt-5 h-6 w-full" />
+                    <Skeleton className="mt-6 h-4 w-64" />
+                </div>
+                <Skeleton className="mt-8 aspect-[16/9] w-full rounded-3xl md:mt-10 md:aspect-[2/1]" />
+                <div className="mx-auto mt-10 max-w-[44rem] space-y-4 md:mt-12">
+                    {Array.from({ length: 7 }).map((_, i) => (
+                        <Skeleton key={i} className="h-5 w-full" />
+                    ))}
+                    <Skeleton className="h-5 w-2/3" />
+                </div>
             </div>
-            <div className="space-y-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-5 w-full" />
-                ))}
-                <Skeleton className="h-5 w-2/3" />
-            </div>
-        </article>
+        </div>
     );
 }

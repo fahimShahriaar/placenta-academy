@@ -1,29 +1,36 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { deleteBlog } from "@/actions/blogs";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { deleteBlog } from "@/actions/blogs";
 
 export function BlogDeleteButton({ id, title }: { id: number; title: string }) {
-    async function handleDelete() {
-        if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
-        const result = await deleteBlog(id);
-        if (result.success) {
-            toast.success("Blog post deleted.");
-        } else {
-            toast.error(result.error);
-        }
-    }
-
     return (
-        <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive"
-            onClick={handleDelete}
-        >
-            <Trash2 className="h-4 w-4" />
-        </Button>
+        <ConfirmDialog
+            trigger={
+                <Button variant="destructive-ghost" size="icon-sm" aria-label={`Delete “${title}”`}>
+                    <Trash2 />
+                </Button>
+            }
+            title="Delete this article?"
+            description={
+                <>
+                    <span className="font-medium text-foreground">“{title}”</span>{" "}and its cover image will be
+                    permanently deleted. This can&apos;t be undone.
+                </>
+            }
+            confirmLabel="Delete article"
+            onConfirm={async () => {
+                const result = await deleteBlog(id);
+                if ("error" in result && result.error) {
+                    toast.error(result.error);
+                    return false;
+                }
+                toast.success("Article deleted.");
+                return true;
+            }}
+        />
     );
 }

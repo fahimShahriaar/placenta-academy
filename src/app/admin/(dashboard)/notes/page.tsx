@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { ExternalLink, FilePlus2, FileText, Pencil } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button-variants";
 import {
     Table,
     TableBody,
@@ -10,8 +10,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NoteDeleteButton } from "@/components/admin/NoteDeleteButton";
+import { AdminPageHeader, AdminPanel } from "@/components/admin/AdminPageHeader";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { formatDate, formatFileSize, pluralize } from "@/lib/format";
+import { summarizeNoteTags } from "@/lib/taxonomy";
 
 export default async function AdminNotesPage() {
     const notes = await prisma.pdfNote.findMany({
@@ -20,75 +24,122 @@ export default async function AdminNotesPage() {
     });
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">PDF Notes</h1>
-                <Link href="/admin/notes/new">
-                    <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Upload Note
-                    </Button>
-                </Link>
-            </div>
+        <div>
+            <AdminPageHeader
+                title="PDF notes"
+                description={`${pluralize(notes.length, "note")} in the library.`}
+                actions={
+                    <Link href="/admin/notes/new" className={buttonVariants()}>
+                        <FilePlus2 data-icon="inline-start" />
+                        Upload note
+                    </Link>
+                }
+            />
 
-            <div className="border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Tags</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead className="text-right">Views</TableHead>
-                            <TableHead className="w-32">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {notes.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                    No notes uploaded yet.
-                                </TableCell>
+            {notes.length === 0 ? (
+                <EmptyState
+                    icon={FileText}
+                    title="No notes uploaded yet"
+                    description="Upload a PDF, give it a title, and tag it so students can find it in the library."
+                >
+                    <Link href="/admin/notes/new" className={buttonVariants()}>
+                        <FilePlus2 data-icon="inline-start" />
+                        Upload note
+                    </Link>
+                </EmptyState>
+            ) : (
+                <AdminPanel>
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="hover:bg-transparent">
+                                <TableHead>Note</TableHead>
+                                <TableHead className="hidden lg:table-cell">Classification</TableHead>
+                                <TableHead className="hidden md:table-cell">Added</TableHead>
+                                <TableHead className="hidden text-right sm:table-cell">Views</TableHead>
+                                <TableHead className="text-right">
+                                    <span className="sr-only">Actions</span>
+                                </TableHead>
                             </TableRow>
-                        ) : (
-                            notes.map((note) => (
-                                <TableRow key={note.id}>
-                                    <TableCell className="font-medium max-w-xs truncate">
-                                        {note.title}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-wrap gap-1">
-                                            {note.tags.slice(0, 3).map((nt) => (
-                                                <Badge key={nt.tag.id} variant="secondary" className="text-xs">
-                                                    {nt.tag.name}
-                                                </Badge>
-                                            ))}
-                                            {note.tags.length > 3 && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    +{note.tags.length - 3}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">
-                                        {note.createdAt.toLocaleDateString()}
-                                    </TableCell>
-                                    <TableCell className="text-right">{note.viewCount}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Link href={`/admin/notes/${note.id}/edit`}>
-                                                <Button variant="ghost" size="sm">
-                                                    Edit
-                                                </Button>
+                        </TableHeader>
+                        <TableBody>
+                            {notes.map((note) => {
+                                const { subject, phase, rest } = summarizeNoteTags(note.tags.map((t) => t.tag));
+                                const classification = [subject?.name, phase?.name].filter(Boolean).join(" · ");
+                                return (
+                                    <TableRow key={note.id}>
+                                        <TableCell className="w-full max-w-0">
+                                            <Link
+                                                href={`/admin/notes/${note.id}/edit`}
+                                                className="block truncate font-medium text-foreground underline-offset-4 hover:underline"
+                                            >
+                                                {note.title}
                                             </Link>
-                                            <NoteDeleteButton id={note.id} title={note.title} />
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                                            <p className="mt-0.5 truncate text-meta text-muted-foreground">
+                                                {note.fileName} · {formatFileSize(note.fileSize)}
+                                            </p>
+                                            <p className="mt-0.5 truncate text-meta text-muted-foreground md:hidden">
+                                                {formatDate(note.createdAt)} · {pluralize(note.viewCount, "view")}
+                                                {classification && ` · ${classification}`}
+                                            </p>
+                                        </TableCell>
+                                        <TableCell className="hidden lg:table-cell">
+                                            {classification ? (
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-sm whitespace-nowrap text-foreground">{classification}</span>
+                                                    {rest.length > 0 && (
+                                                        <span className="text-meta whitespace-nowrap text-muted-foreground">
+                                                            +{pluralize(rest.length, "more tag")}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">
+                                                    {rest.length > 0 ? pluralize(rest.length, "tag") : "Untagged"}
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="hidden whitespace-nowrap text-muted-foreground md:table-cell">
+                                            {formatDate(note.createdAt)}
+                                        </TableCell>
+                                        <TableCell className="hidden text-right tabular-nums sm:table-cell">
+                                            {note.viewCount.toLocaleString("en-US")}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Link
+                                                    href={`/admin/notes/${note.id}/edit`}
+                                                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                                                    aria-label={`Edit “${note.title}”`}
+                                                >
+                                                    <Pencil />
+                                                    <span className="hidden sm:inline">Edit</span>
+                                                </Link>
+                                                <Tooltip>
+                                                    <TooltipTrigger
+                                                        render={
+                                                            <a
+                                                                href={`/notes/${note.slug}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                aria-label={`View “${note.title}” on the website (opens in a new tab)`}
+                                                                className={buttonVariants({ variant: "quiet", size: "icon-sm" })}
+                                                            />
+                                                        }
+                                                    >
+                                                        <ExternalLink />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>View on website</TooltipContent>
+                                                </Tooltip>
+                                                <NoteDeleteButton id={note.id} title={note.title} />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </AdminPanel>
+            )}
         </div>
     );
 }

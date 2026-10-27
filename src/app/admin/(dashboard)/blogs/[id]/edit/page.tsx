@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { MAX_IMAGE_SIZE } from "@/lib/constants";
 import { BlogForm } from "@/components/admin/BlogForm";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { notFound } from "next/navigation";
 
 export default async function EditBlogPage({
@@ -21,9 +23,9 @@ export default async function EditBlogPage({
     if (!blog) notFound();
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold">Edit Blog Post</h1>
-            <BlogForm tags={tags} blog={blog} />
+        <div>
+            <AdminPageHeader title="Edit article" back={{ href: "/admin/blogs", label: "Articles" }} />
+            <BlogForm tags={tags} blog={blog} maxImageSize={MAX_IMAGE_SIZE} />
         </div>
     );
 }
