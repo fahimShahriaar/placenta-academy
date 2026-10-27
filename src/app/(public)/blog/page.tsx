@@ -7,7 +7,7 @@ import { BlogFilterBar } from "@/components/blog/BlogFilterBar";
 import { Pagination } from "@/components/shared/Pagination";
 
 export const metadata: Metadata = {
-    title: `Blog | ${SITE_NAME}`,
+    title: "Blog",
     description: `Medical articles and insights from ${SITE_NAME}`,
 };
 

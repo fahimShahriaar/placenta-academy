@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_URL } from "@/lib/constants";
 import { BlogContent } from "@/components/blog/BlogContent";
 import { ShareButtons } from "@/components/shared/ShareButtons";
 import { BlogCard } from "@/components/blog/BlogCard";
@@ -45,7 +45,7 @@ export async function generateMetadata({
     if (!post) return { title: "Not Found" };
 
     return {
-        title: `${post.title} | ${SITE_NAME}`,
+        title: post.title,
         description: post.excerpt || undefined,
         openGraph: {
             title: post.title,

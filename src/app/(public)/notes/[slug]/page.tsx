@@ -53,7 +53,7 @@ export async function generateMetadata({
 
     const tags = note.tags.map((t) => t.tag.name);
     return {
-        title: `${note.title} | ${SITE_NAME}`,
+        title: note.title,
         description: note.description || `Read ${note.title} on ${SITE_NAME}`,
         keywords: tags,
         openGraph: {
